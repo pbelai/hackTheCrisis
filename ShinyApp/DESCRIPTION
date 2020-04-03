@@ -13,3 +13,4 @@ Imports:
   shiny,
   shinydashboard,
   dplyr
+RoxygenNote: 7.1.0
