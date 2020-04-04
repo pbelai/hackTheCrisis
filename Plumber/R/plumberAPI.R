@@ -18,7 +18,7 @@ function(lng, lat, radius){
 #'
 #' @get /radius
 function(lng, lat, radius){
-  data <- plmbr:::getRadius(lng, lat, radius)
+  data <- plmbr:::getRadiusPolygon(lng, lat, radius)
   data
 }
 
