@@ -26,6 +26,16 @@ getInformationBoxes <- function() {
   )
 }
 
+addPolygons <- function(map, data) {
+  data$color <- apply(data, 1, function(x) {
+    getColor(as.numeric(x[["numberOfPeople"]]),as.numeric(x[["area"]]))
+  })
+
+  map %>%
+    leaflet::addGeoJSON(createFeatureCollection(data$st_asgeojson[data$color == "green"]), fillColor = "green", color = "green") %>%
+    leaflet::addGeoJSON(createFeatureCollection(data$st_asgeojson[data$color == "yellow"]), fillColor = "yellow", color = "yellow") %>%
+    leaflet::addGeoJSON(createFeatureCollection(data$st_asgeojson[data$color == "red"]), fillColor = "red", color = "red")
+}
 
 generatePoIDataTable <- function(data) {
   data <- data %>% dplyr::rename(

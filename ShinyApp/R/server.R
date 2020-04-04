@@ -1,7 +1,7 @@
 # Define server logic required to draw a histogram
 generateServer <- function() {
   server <- function(input, output, session) {
-    map <- createLeaflet()
+    map <- createLeaflet() %>% addPolygons(getAreaData())
     output$map <- leaflet::renderLeaflet(map)
     output$tableOutput <- generatePoIDataTable(getAreas())
     output$lat <- shiny::renderPrint({
