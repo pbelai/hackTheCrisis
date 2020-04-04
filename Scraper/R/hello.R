@@ -25,20 +25,19 @@ runner <- function(fakeData = TRUE) {
       # docker stop x   (use x)
       #
       # need to have docker container already running
-      remDr <- RSelenium::remoteDriver(
-        remoteServerAddr = "192.168.99.100",
-        port = 4445L,
-        browserName = "firefox"
-      )
       queryList <- c(
         "Vojenský pamätník Slavin",
         "Železná studienka, Cesta mládeže, Nové Mesto",
         "Sad Janka Kráľa, Sad Janka Kráľa, Petržalka",
         "Aupark, Einsteinova, Petržalka"
       )
-      suppressMessages({
-        remDr$open()
-      })
+
+      remDr <- RSelenium::remoteDriver(
+        remoteServerAddr = "192.168.99.100",
+        port = 4445L,
+        browserName = "firefox"
+      )
+      remDr$open()
 
       realData <- NULL
       for (query in unique(queryList)) {
@@ -92,9 +91,12 @@ collectData <- function(query, remDr) {
   poiTitle <- remDr$getTitle() %>% unlist()
   poiUrl   <- remDr$getCurrentUrl() %>% unlist()
   while(grepl("@", poiUrl) == FALSE) {
-    Sys.sleep(sleepTime)
+    cat("    poiUrl:", poiUrl, "\n")
+    # at this point i think this program is getting more sleep than me
+    Sys.sleep(10)
     poiUrl <- remDr$getCurrentUrl() %>% unlist()
   }
+  cat("    poiUrl:", poiUrl, "\n")
   popularTimes <- NULL
   while(is.null(popularTimes)) {
     popularTimes <- tryCatch(
@@ -141,12 +143,11 @@ collectData <- function(query, remDr) {
 }
 
 processData <- function(rawData) {
-  # {\"long\":48.2182,\"lat\":17.0481,\"traffic\":0}
   # lat & long pattern in the url
   longLatPattern <-
-    ".*@([[:digit:]]+[.][[:digit:]]+[,][[:digit:]]+[.][[:digit:]]+)[,].*"
+    ".*![[:digit:]][[:alpha:]]([[:digit:]]+[.][[:digit:]]+![[:digit:]][[:alpha:]][[:digit:]]+[.][[:digit:]]+).*"
   longLat <- gsub(longLatPattern, "\\1", rawData$poiUrl) %>%
-    strsplit(",") %>%
+    strsplit("![[:digit:]][[:alpha:]]") %>%
     unlist()
   xml <- xml2::read_html(unlist(rawData$html))
   trafficBars <- xml2::xml_find_all(xml, "//div[contains(@class, 'section-popular-times-bar')]") # section-popular-times-value section-popular-times-live-value
@@ -155,7 +156,6 @@ processData <- function(rawData) {
     0 < length(xml2::xml_find_all(bar, ".//div[contains(@class, 'live-value')]"))
   })
   if (length(which(trafficBarsLive)) != 0) {
-    # stop(" raw data for query ", rawData$query, " has ", length(which(trafficBarsLive)), " live traffic bars")
     trafficBar <- trafficBars[trafficBarsLive][[1]]
   } else {
     #section-popular-times-current-value
