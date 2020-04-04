@@ -10,10 +10,6 @@ getGeolocation <- function() {
     function onSuccess (position) {
       setTimeout(function () {
         var coords = position.coords;
-        console.log(coords.latitude + ", " + coords.longitude);
-        Shiny.onInputChange("geolocation", true);
-        Shiny.onInputChange("lat", coords.latitude);
-        Shiny.onInputChange("long", coords.longitude);
         Shiny.onInputChange("locationChange", [coords.latitude,coords.longitude])
       }, 1100)
     }
@@ -21,6 +17,13 @@ getGeolocation <- function() {
 '
 }
 
+
+addColor <- function(data) {
+  data$color <- apply(data, 1, function(x) {
+    getColor(as.numeric(x[["numberOfPeople"]]),as.numeric(x[["area"]]))
+  })
+  data
+}
 
 addProperties <- function(data) {
   .getProperty <- function(people, area) paste0(',"properties": {"fill": "',getColor(people, area),'","fill-opacity": 0.5},')

@@ -10,21 +10,26 @@
 
 # Define UI for application that draws a histogram
 
+#' Title
+#'
+#' @return
+#' @export
+#'
+#' @import shiny
+#' @import shinydashboard
 generateUI <- function() {
     ui <- shinydashboard::dashboardPage(
         shinydashboard::dashboardHeader(title = "coRona finder"),
         shinydashboard::dashboardSidebar(),
         body = shinydashboard::dashboardBody(
             shinypop::use_push(),
-            tags$head(tags$script(HTML(getGeolocation()))),
+            shiny::tags$head(shiny::tags$script(shiny::HTML(getGeolocation())),
+                             shiny::tags$style(shiny::HTML(getDTStyles()))),
+
 
             fluidRow(getInformationBoxes()),
             fluidRow(leaflet::leafletOutput("map")),
-            fluidRow(DT::dataTableOutput("tableOutput")),
-            # shiny::tableOutput("mtcars"),
-            shiny::verbatimTextOutput("lat"),
-            shiny::verbatimTextOutput("long"),
-            shiny::verbatimTextOutput("geolocation")
+            fluidRow(DT::dataTableOutput("tableOutput"))
         )
     )
     ui
