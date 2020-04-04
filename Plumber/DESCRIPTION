@@ -1,4 +1,4 @@
-Package: Plumber
+Package: plmbr
 Type: Package
 Title: What the Package Does (Title Case)
 Version: 0.1.0
@@ -10,5 +10,5 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Imports: 
-  dplyr
+  dplyr, RPostgreSQL, plumber, jsonlite
 RoxygenNote: 7.1.0
