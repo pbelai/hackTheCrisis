@@ -13,3 +13,11 @@ getAreas <- function() {
     area = c(50,100,150)
   )
 }
+
+getAreaData <- function() {
+  csvFile <- read.csv("dump.csv",encoding = "UTF-8")
+  csvFile$area <- c(50,100,150,1)
+  csvFile$numberOfPeople <- seq(1, 250, 75)
+
+  csvFile
+}
