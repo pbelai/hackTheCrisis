@@ -21,3 +21,12 @@ getAreaData <- function() {
 
   csvFile
 }
+
+getAreaDataFromAPI <- function(lng, lat, radius) {
+  urlBase <- "http://127.0.0.1:8000/POIs"
+  url <- glue::glue("{urlBase}?lng={lng}&lat={lat}&radius={radius}")
+  response <- httr::GET(url = url)
+  data <- jsonlite::fromJSON(httr::content(response, "text"))
+  data$name
+}
+

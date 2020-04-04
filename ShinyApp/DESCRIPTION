@@ -15,5 +15,6 @@ Imports:
   dplyr,
   leaflet,
   magrittr,
-  shinypop
+  shinypop,
+  httr
 RoxygenNote: 7.1.0
