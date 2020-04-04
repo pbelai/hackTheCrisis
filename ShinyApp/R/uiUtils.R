@@ -27,10 +27,6 @@ getInformationBoxes <- function() {
 }
 
 addPolygons <- function(map, data) {
-  data$color <- apply(data, 1, function(x) {
-    getColor(as.numeric(x[["numberOfPeople"]]),as.numeric(x[["area"]]))
-  })
-
   map %>%
     leaflet::addGeoJSON(createFeatureCollection(data$st_asgeojson[data$color == "green"]), fillColor = "green", color = "green") %>%
     leaflet::addGeoJSON(createFeatureCollection(data$st_asgeojson[data$color == "yellow"]), fillColor = "yellow", color = "yellow") %>%
@@ -38,10 +34,28 @@ addPolygons <- function(map, data) {
 }
 
 generatePoIDataTable <- function(data) {
-  data <- data %>% dplyr::rename(
-    Miesto = pointOfInterest, "Počet ľudí" = numberOfPeople, Plocha = area
+  .getDensity <- function(x){switch(x,
+    "green" = "Nízka",
+    "yellow" = "Priemerná",
+    "red" = "Vysoká!"
+  )}
+  data$density <- sapply(data$color, .getDensity)
+  data <- data %>% dplyr::select(
+    Miesto = name, "Počet ľudí" = numberOfPeople, Plocha = area, "Hustota ľudí" = density
   )
-  DT::renderDataTable(data, server = FALSE)
+
+  dataTable <-
+    DT::datatable(
+      data,
+      style = "bootstrap",
+      rownames = FALSE,
+      autoHideNavigation = TRUE
+    ) %>% DT::formatStyle(    'Hustota ľudí',
+    target = 'row',
+    backgroundColor = DT::styleEqual(c("Nízka", "Priemerná","Vysoká!"), c('#85ff85',"#fff66e", '#ff8585'))
+  )
+
+  DT::renderDataTable(dataTable, server = FALSE)
 }
 
 
@@ -65,4 +79,12 @@ getPeopleIcon <- function(numberOfPeople, areaM2 = 10) {
   } else {
     "frown"
   }
+}
+
+
+getDTStyles <- function() {
+  "table.dataTable tbody td.active, .table.dataTable tbody tr.active td {
+    background-color: #151a1e69 !important;
+    color: black;
+    font-weight: bold;}"
 }

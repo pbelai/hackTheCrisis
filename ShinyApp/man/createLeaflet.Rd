@@ -4,7 +4,7 @@
 \alias{createLeaflet}
 \title{Title}
 \usage{
-createLeaflet(x = 48.0838, y = 17.0635, zoom = 10)
+createLeaflet(lng = 17.1117078, lat = 48.1473227, zoom = 13)
 }
 \arguments{
 \item{zoom}{}
