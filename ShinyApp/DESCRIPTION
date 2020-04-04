@@ -12,4 +12,8 @@ LazyData: true
 Imports: 
   shiny,
   shinydashboard,
-  dplyr
+  dplyr,
+  leaflet,
+  magrittr,
+  shinypop
+RoxygenNote: 7.1.0

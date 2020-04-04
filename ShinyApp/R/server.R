@@ -1,14 +1,25 @@
 # Define server logic required to draw a histogram
-server <- function(input, output) {
-  
-  output$distPlot <- renderPlot({
-    # generate bins based on input$bins from ui.R
-    x    <- faithful[, 2]
-    bins <- seq(min(x), max(x), length.out = input$bins + 1)
-    
-    # draw the histogram with the specified number of bins
-    hist(x, breaks = bins, col = 'darkgray', border = 'white')
-  })
-}
+generateServer <- function() {
+  server <- function(input, output, session) {
+    map <- createLeaflet()
+    output$map <- leaflet::renderLeaflet(map)
+    output$tableOutput <- generatePoIDataTable(getAreas())
+    output$lat <- shiny::renderPrint({
+      input$lat
+    })
 
-# Run the application 
+    output$long <- shiny::renderPrint({
+      input$long
+    })
+
+    output$geolocation <- shiny::renderPrint({
+      input$geolocation
+    })
+    observeEvent(input$locationChange, {
+      shinypop::push(title = "I can see you", "aaa")
+      output$map <- leaflet::renderLeaflet(map %>% leaflet::addMarkers(input$locationChange[2], input$locationChange[1]))
+    })
+  }
+  server
+}
+# Run the application

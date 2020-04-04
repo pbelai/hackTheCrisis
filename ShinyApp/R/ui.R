@@ -7,36 +7,33 @@
 #    http://shiny.rstudio.com/
 #
 
-library(shiny)
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(
 
-    # Application title
-    titlePanel("Old Faithful Geyser Data"),
+generateUI <- function() {
+    ui <- shinydashboard::dashboardPage(
+        shinydashboard::dashboardHeader(title = "coRona finder"),
+        shinydashboard::dashboardSidebar(),
+        body = shinydashboard::dashboardBody(
+            shinypop::use_push(),
+            tags$head(tags$script(HTML(getGeolocation()))),
 
-    # Sidebar with a slider input for number of bins
-    sidebarLayout(
-        sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
-        ),
-
-        # Show a plot of the generated distribution
-        mainPanel(
-           plotOutput("distPlot")
+            fluidRow(getInformationBoxes()),
+            fluidRow(leaflet::leafletOutput("map")),
+            fluidRow(DT::dataTableOutput("tableOutput")),
+            # shiny::tableOutput("mtcars"),
+            shiny::verbatimTextOutput("lat"),
+            shiny::verbatimTextOutput("long"),
+            shiny::verbatimTextOutput("geolocation")
         )
     )
-)
-
+    ui
+}
 #' Starts shiny server
 #'
 #' @return
 #' @export
 startServer <- function() {
-    shiny::shinyApp(ui = ui, server = server)
+    shiny::shinyApp(ui = generateUI(), server = generateServer())
 }
 
