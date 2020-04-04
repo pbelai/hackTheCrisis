@@ -34,16 +34,28 @@ addPolygons <- function(map, data) {
 }
 
 generatePoIDataTable <- function(data) {
+  .getDensity <- function(x){switch(x,
+    "green" = "Nízka",
+    "yellow" = "Priemerná",
+    "red" = "Vysoká!"
+  )}
+  data$density <- sapply(data$color, .getDensity)
   data <- data %>% dplyr::select(
-    Miesto = name, "Počet ľudí" = numberOfPeople, Plocha = area, color = color
-  )
-  data <- DT::datatable(data,style = "bootstrap", rownames = FALSE) %>% DT::formatStyle(
-    'color',
-    target = 'row',
-    backgroundColor = DT::styleEqual(c("green", "yellow","red"), c('#85ff85',"#fff66e", '#ff8585'))
+    Miesto = name, "Počet ľudí" = numberOfPeople, Plocha = area, "Hustota ľudí" = density
   )
 
-  DT::renderDataTable(data, server = FALSE)
+  dataTable <-
+    DT::datatable(
+      data,
+      style = "bootstrap",
+      rownames = FALSE,
+      autoHideNavigation = TRUE
+    ) %>% DT::formatStyle(    'Hustota ľudí',
+    target = 'row',
+    backgroundColor = DT::styleEqual(c("Nízka", "Priemerná","Vysoká!"), c('#85ff85',"#fff66e", '#ff8585'))
+  )
+
+  DT::renderDataTable(dataTable, server = FALSE)
 }
 
 
