@@ -1,51 +1,6 @@
-# Hello, world!
-#
-# This is an example function named 'hello'
-# which prints 'Hello, world!'.
-#
-# You can learn more about package authoring with RStudio at:
-#
-#   http://r-pkgs.had.co.nz/
-#
-# Some useful keyboard shortcuts for package authoring:
-#
-#   Install Package:           'Ctrl + Shift + B'
-#   Check Package:             'Ctrl + Shift + E'
-#   Test Package:              'Ctrl + Shift + T'
-
-
-# Google maps recording live visitor traffic (potential data scrapping)
-# Google maps feature for density indication (red, orange, green)
-# Sygic – sample data for Bratislava (location data for march 2020)
-# Waze data
-# Sample data from telco providers
-# City open data platform – density of population
-# Open street maps – identification of popular places
-
-
-# 48.1486° N, 17.1077° E
-
-# wifi
-# petrzalska hrada , zlelezna studenie , koliba, nabrezie dunaja
-#library(magrittr)
-#library(httr)
-
-# # slavin
-# url <- "https://www.google.com/maps/place/Slav%C3%ADn/@48.1536998,17.0997204,18z/data=!4m12!1m6!3m5!1s0x476c8957e6c49333:0xf45a2f4a89dd2dae!2zU2xhdsOtbg!8m2!3d48.1538784!4d17.0997196!3m4!1s0x476c8957e6c49333:0xf45a2f4a89dd2dae!8m2!3d48.1538784!4d17.0997196"
-# # r <- httr::GET()
-# # 200
-# httr::status_code(r)
-# # http status
-# httr::http_status(r)
-# # headers
-# httr::headers(r)
-# #
-# content(r, "text")
-# # content(r, "text", encoding = "ISO-8859-1") - if the encoding doesnt match (also see stringi::stri_enc_detect(content(r, "raw")).)
-#
-# xxx <- content(r, "text")
 fakeDataPath <- "data/fakeData.json"
 realDataPath <- "data/real"
+completeFile <- file.path(realDataPath, "realData.json")
 
 #' @importFrom magrittr %>%
 runner <- function(fakeData = TRUE) {
@@ -59,12 +14,11 @@ runner <- function(fakeData = TRUE) {
     return(0)
   }
 
-
-
-
   tryCatch(
     {
-      # I HATE MY LIFE
+      # IF YOU WANT TO USE fakeData = FALSE, YOU NEED TO HAVE DOCKER INSTALLED.
+      # SEE THE LINK BELOW @ TOP ANSWER
+      #
       # https://stackoverflow.com/questions/45395849/cant-execute-rsdriver-connection-refused
       # docker run -d -p 4445:4444 --shm-size 2g selenium/standalone-firefox   (start with 2 gigs of ram)
       # docker ps -q    (get x)
@@ -82,14 +36,17 @@ runner <- function(fakeData = TRUE) {
         "Sad Janka Kráľa, Sad Janka Kráľa, Petržalka",
         "Aupark, Einsteinova, Petržalka"
       )
-      remDr$open() # this operation may take a long time
+      suppressMessages({
+        remDr$open()
+      })
 
       realData <- NULL
       for (query in unique(queryList)) {
-        rawFile       <- file.path(realDataPath, "raw", paste0(query, ".json"))
+        rawFile <- file.path(realDataPath, "raw", paste0(query, ".json"))
         cat("query: ", query, "\n")
 
-        if (TRUE) { #!file.exists(rawFile)
+        # change to TRUE if want to collectData always
+        if (!file.exists(rawFile)) {
           rawData <- collectData(query, remDr)
           cat("  writing to file", rawFile, "\n")
           jsonlite::write_json(rawData, rawFile)
@@ -97,29 +54,18 @@ runner <- function(fakeData = TRUE) {
           cat("  reading file", rawFile, "\n")
           rawData <- jsonlite::fromJSON(rawFile)
         }
-
-        realData[query] <- processData(jsonlite::parse_json(rawData))
-
-
+        realData[[query]] <-
+          processData(jsonlite::parse_json(rawData, simplifyVector = TRUE))
       }
-
-      browser()
+      cat("*** Writing aggregated data to", completeFile, "***\n")
+      jsonlite::toJSON(realData, auto_unbox = TRUE) %>%
+        jsonlite::write_json(completeFile)
     },
-    error=function(cond) {
-
-    },
-    warning=function(cond) {
-
-    },
-    finally={
+    finally = {
       remDr$close()
     }
   )
-
-
-
 }
-
 
 #' @importFrom magrittr %>%
 collectData <- function(query, remDr) {
@@ -138,16 +84,6 @@ collectData <- function(query, remDr) {
   searchResults <- remDr$findElements(using = "class", "section-result")
   if (length(searchResults) > 1) {
     stop(paste0("the query '", query, "' resulted in ", length(searchResults), " search results"))
-    # try to fix it with address section-info-action-button
-    # for (singleSearchResult in multipleSeachResults) {
-    #   # section-result-title
-    #   res1 <- multipleSeachResults[[1]]$findElement(using = "class", "section-result-title")
-    #   res1 <- res1$findElement("xpath", "h3") # section-result-title
-    #   res1$getElementAttribute("innerHTML")
-    #   singleSearchResult$clickElement()
-    #   #singleSearchResult$findElements(using = "class", "section-info-action-button")
-    # }
-    # multipleSeachResults[[1]]$findElement(using = "xpath", "//h3[@class = 'section-result-title']")
   }
   sleepTime <- 1 # sec
 
@@ -173,30 +109,35 @@ collectData <- function(query, remDr) {
       }
     )
   }
+  # find outs which day of traffic data to use (use the default selected)
+  script <-
+  "x = document.getElementsByClassName('section-popular-times-container');
+   output = [];
+   for (child of x[0].childNodes) {
+     xx = child.childNodes[3];
+     if (typeof xx !== 'undefined') {
+       isHidden = xx.getAttribute('aria-hidden') != 'true';
+       output.push(isHidden);
+     }
+   }
+   return output
+  "
+  day <- remDr$executeScript(script) %>% unlist %>% which()
+
   endtTime <- Sys.time()
   cat("  object read after", endtTime - startTime, "seconds\n")
 
   popularTimesHTML <- popularTimes$getElementAttribute("innerHTML") %>% unlist()
 
-  #
-  #   fileConn <- file("times.html")
-  #   writeLines(unlist(popularTimesHTML), fileConn)
-  #   close(fileConn)
   cat("  preparing raw object\n")
   rawData <- list(
     query = query,
     poiTitle = poiTitle,
     poiUrl = poiUrl,
+    day = day,
     html = popularTimesHTML
   )
   return(jsonlite::toJSON(rawData))
-  # saveRDS(
-  #   list(
-  #     title = title,
-  #     location = location,
-  #     density = popularTimes
-  #   )
-  # )
 }
 
 processData <- function(rawData) {
@@ -204,9 +145,6 @@ processData <- function(rawData) {
   # lat & long pattern in the url
   longLatPattern <-
     ".*@([[:digit:]]+[.][[:digit:]]+[,][[:digit:]]+[.][[:digit:]]+)[,].*"
-  liveTrafficPattern <- ".*"
-
-
   longLat <- gsub(longLatPattern, "\\1", rawData$poiUrl) %>%
     strsplit(",") %>%
     unlist()
@@ -216,20 +154,35 @@ processData <- function(rawData) {
   trafficBarsLive <- sapply(trafficBars, function(bar) {
     0 < length(xml2::xml_find_all(bar, ".//div[contains(@class, 'live-value')]"))
   })
-  if (length(which(trafficBarsLive)) != 1) {
-    stop(" raw data for query", rawData$query, "has", length(which(trafficBarsLive)), "live traffic bars")
+  if (length(which(trafficBarsLive)) != 0) {
+    # stop(" raw data for query ", rawData$query, " has ", length(which(trafficBarsLive)), " live traffic bars")
+    trafficBar <- trafficBars[trafficBarsLive][[1]]
+  } else {
+    #section-popular-times-current-value
+    trafficBarsCurrentHour <- sapply(trafficBars, function(trafficBar) {
+      (1 == (length(xml2::xml_find_all(trafficBar, "./div[contains(@class, 'section-popular-times-current-value')]"))))
+    })
+    if (length(which(trafficBarsCurrentHour)) != 7) {
+      stop(" raw data for query", rawData$query, " contains traffic values for ", length(which(trafficBarsCurrentHour)), " days")
+    }
+    trafficBar <- trafficBars[trafficBarsCurrentHour][rawData$day]
   }
-  verboseTraffic <- xml2::xml_attr(trafficBars[trafficBarsLive][[1]], "aria-label")
-
-
-  browser()
+  verboseTraffic <- xml2::xml_attr(trafficBar, "aria-label")
+  # gsub("[^[:alnum:] ]", "", verboseTraffic) %>% strsplit(" ") %>% .[[1]] %>%  as.numeric()
+  x <- gsub("[^[:alnum:] ]", "", verboseTraffic) %>%
+    strsplit(" ") %>%
+    unlist()
+  suppressWarnings({
+    # pick the numeric values which are in percent format
+    numericTraffic <- as.numeric(x[!is.na(as.numeric(x))]) / 100
+  })
   processedData <- list(
     long = longLat[1],
     lat  = longLat[2],
-    traffic = ""#xml2::read_xml()
+    traffic     = ifelse(length(numericTraffic) > 1, numericTraffic[2], numericTraffic[1]),
+    liveTraffic = ifelse(length(numericTraffic) > 1, numericTraffic[1], NA)
   )
-
-
+  return(processedData)
 }
 
 submitData <- function() {
