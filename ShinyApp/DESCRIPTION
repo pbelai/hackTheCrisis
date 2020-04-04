@@ -14,5 +14,6 @@ Imports:
   shinydashboard,
   dplyr,
   leaflet,
-  magrittr
+  magrittr,
+  shinypop
 RoxygenNote: 7.1.0

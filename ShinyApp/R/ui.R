@@ -15,10 +15,16 @@ generateUI <- function() {
         shinydashboard::dashboardHeader(title = "coRona finder"),
         shinydashboard::dashboardSidebar(),
         body = shinydashboard::dashboardBody(
+            shinypop::use_push(),
+            tags$head(tags$script(HTML(getGeolocation()))),
+
             fluidRow(getInformationBoxes()),
             fluidRow(leaflet::leafletOutput("map")),
-            fluidRow(DT::dataTableOutput("tableOutput"))
+            fluidRow(DT::dataTableOutput("tableOutput")),
             # shiny::tableOutput("mtcars"),
+            shiny::verbatimTextOutput("lat"),
+            shiny::verbatimTextOutput("long"),
+            shiny::verbatimTextOutput("geolocation")
         )
     )
     ui
