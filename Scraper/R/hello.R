@@ -186,7 +186,12 @@ processData <- function(rawData) {
 }
 
 submitData <- function() {
-
+  # for now, realData.json used:
+  realDataPath <- "data/real"
+  completeFile <- file.path(realDataPath, "realData.json")
+  jsonData <- jsonlite::fromJSON(completeFile)
+  url <- "http://127.0.0.1:8000/people"
+  response <- httr::POST(url = url, body = jsonlite::toJSON(jsonData))
 }
 
 #' @importFrom magrittr %>%

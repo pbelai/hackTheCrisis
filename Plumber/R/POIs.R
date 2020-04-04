@@ -48,15 +48,16 @@ getRadiusPolygon <- function(lng = 48.1446364, lat = 17.1103739, radius = 300) {
 addPeople <- function(body) {
   message("Inserting people to database")
   sqlInsertStatement = paste("INSERT INTO \"people\"",
-                        "(\"traffic\", \"way\")",
+                        "(\"traffic\", \"live_traffic\", \"way\")",
                         "VALUES",
-                        "($1, ST_GeomFromGeoJSON($2))")
-  for (idx in seq_len(nrow(body))){
-    traffic <- body[idx,]$traffic
-    way <- paste0(jsonlite::toJSON(list(type = "Point", coordinates = list(body[idx,]$lat, body[idx,]$long)),
+                        "($1, $2, ST_GeomFromGeoJSON($3))")
+  apply(body, 1, function(x){
+    traffic <- x[["traffic"]]
+    liveTraffic <- x[["liveTraffic"]]
+    way <- paste0(jsonlite::toJSON(list(type = "Point", coordinates = list(x[["lat"]], x[["long"]])),
                                            auto_unbox = T))
-    row <- c(traffic = traffic, way = way)
+    row <- c(traffic = traffic, liveTraffic = liveTraffic, way = way)
     dbExecute(connection, sqlInsertStatement, row)
-  }
+  })
   message("Inserting finished")
 }
