@@ -71,7 +71,6 @@ getPeopleIcon <- function(numberOfPeople, areaM2 = 10) {
 
 
 getDTStyles <- function() {
-  message("ej")
   "table.dataTable tbody td.active, .table.dataTable tbody tr.active td {
     background-color: #151a1e69 !important;
     color: black;

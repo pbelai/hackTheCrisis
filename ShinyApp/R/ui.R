@@ -13,7 +13,6 @@
 #' Title
 #'
 #' @return
-#' @export
 #'
 #' @import shiny
 #' @import shinydashboard
