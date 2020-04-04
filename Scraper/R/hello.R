@@ -45,7 +45,9 @@
 #
 # xxx <- content(r, "text")
 fakeDataPath <- "data/fakeData.json"
+realDataPath <- "data/real"
 
+#' @importFrom magrittr %>%
 runner <- function(fakeData = TRUE) {
 
   if (fakeData) {
@@ -57,36 +59,73 @@ runner <- function(fakeData = TRUE) {
     return(0)
   }
 
-  # I HATE MY LIFE
-  # https://stackoverflow.com/questions/45395849/cant-execute-rsdriver-connection-refused
-  # docker run -d -p 4445:4444 --shm-size 2g selenium/standalone-firefox   (start with 2 gigs of ram)
-  # docker ps -q    (get x)
-  # docker stop x   (use x)
-  #
-  # need to have docker container already running
-  remDr <- RSelenium::remoteDriver(
-    remoteServerAddr = "192.168.99.100",
-    port = 4445L,
-    browserName = "firefox"
+
+
+
+  tryCatch(
+    {
+      # I HATE MY LIFE
+      # https://stackoverflow.com/questions/45395849/cant-execute-rsdriver-connection-refused
+      # docker run -d -p 4445:4444 --shm-size 2g selenium/standalone-firefox   (start with 2 gigs of ram)
+      # docker ps -q    (get x)
+      # docker stop x   (use x)
+      #
+      # need to have docker container already running
+      remDr <- RSelenium::remoteDriver(
+        remoteServerAddr = "192.168.99.100",
+        port = 4445L,
+        browserName = "firefox"
+      )
+      queryList <- c(
+        "Vojenský pamätník Slavin",
+        "Železná studienka, Cesta mládeže, Nové Mesto",
+        "Sad Janka Kráľa, Sad Janka Kráľa, Petržalka",
+        "Aupark, Einsteinova, Petržalka"
+      )
+      remDr$open() # this operation may take a long time
+
+      realData <- NULL
+      for (query in unique(queryList)) {
+        rawFile       <- file.path(realDataPath, "raw", paste0(query, ".json"))
+        cat("query: ", query, "\n")
+
+        if (TRUE) { #!file.exists(rawFile)
+          rawData <- collectData(query, remDr)
+          cat("  writing to file", rawFile, "\n")
+          jsonlite::write_json(rawData, rawFile)
+        } else {
+          cat("  reading file", rawFile, "\n")
+          rawData <- jsonlite::fromJSON(rawFile)
+        }
+
+        realData[query] <- processData(jsonlite::parse_json(rawData))
+
+
+      }
+
+      browser()
+    },
+    error=function(cond) {
+
+    },
+    warning=function(cond) {
+
+    },
+    finally={
+      remDr$close()
+    }
   )
-  queryList <- list(
-    "Vojenský pamätník Slavin"
-  )
 
-  for (query in queryList) {
-
-    rawData <- collectData(query, remDr)
-
-
-  }
 
 
 }
 
-# a better interface may be to send POI name and we extract the data
+
+#' @importFrom magrittr %>%
 collectData <- function(query, remDr) {
-  remDr$open()
+  cat("  navigating\n")
   remDr$navigate("https://www.google.com/maps/")
+  cat("  searching by query\n")
   # correct our location
   searchField <- remDr$findElement(using = "id", "searchboxinput")
   searchField$clearElement()
@@ -110,15 +149,40 @@ collectData <- function(query, remDr) {
     # }
     # multipleSeachResults[[1]]$findElement(using = "xpath", "//h3[@class = 'section-result-title']")
   }
+  sleepTime <- 1 # sec
+
+  cat("  extracting info\n")
+  startTime <- Sys.time()
   poiTitle <- remDr$getTitle() %>% unlist()
-  poiUrl <- remDr$getCurrentUrl() %>% unlist()
-  popularTimes <- remDr$findElement(using = "class", "section-popular-times-container") # section-popular-times-live-value-gradient
+  poiUrl   <- remDr$getCurrentUrl() %>% unlist()
+  while(grepl("@", poiUrl) == FALSE) {
+    Sys.sleep(sleepTime)
+    poiUrl <- remDr$getCurrentUrl() %>% unlist()
+  }
+  popularTimes <- NULL
+  while(is.null(popularTimes)) {
+    popularTimes <- tryCatch(
+      {
+        suppressMessages({
+          remDr$findElement(using = "class", "section-popular-times-container") # section-popular-times-live-value-gradient
+        })
+      },
+      error = function(cond) {
+        Sys.sleep(sleepTime)
+        return(NULL)
+      }
+    )
+  }
+  endtTime <- Sys.time()
+  cat("  object read after", endtTime - startTime, "seconds\n")
+
   popularTimesHTML <- popularTimes$getElementAttribute("innerHTML") %>% unlist()
+
   #
   #   fileConn <- file("times.html")
   #   writeLines(unlist(popularTimesHTML), fileConn)
   #   close(fileConn)
-  remDr$close()
+  cat("  preparing raw object\n")
   rawData <- list(
     query = query,
     poiTitle = poiTitle,
@@ -135,7 +199,36 @@ collectData <- function(query, remDr) {
   # )
 }
 
-processData <- function() {
+processData <- function(rawData) {
+  # {\"long\":48.2182,\"lat\":17.0481,\"traffic\":0}
+  # lat & long pattern in the url
+  longLatPattern <-
+    ".*@([[:digit:]]+[.][[:digit:]]+[,][[:digit:]]+[.][[:digit:]]+)[,].*"
+  liveTrafficPattern <- ".*"
+
+
+  longLat <- gsub(longLatPattern, "\\1", rawData$poiUrl) %>%
+    strsplit(",") %>%
+    unlist()
+  xml <- xml2::read_html(unlist(rawData$html))
+  trafficBars <- xml2::xml_find_all(xml, "//div[contains(@class, 'section-popular-times-bar')]") # section-popular-times-value section-popular-times-live-value
+  # check which is the live bar
+  trafficBarsLive <- sapply(trafficBars, function(bar) {
+    0 < length(xml2::xml_find_all(bar, ".//div[contains(@class, 'live-value')]"))
+  })
+  if (length(which(trafficBarsLive)) != 1) {
+    stop(" raw data for query", rawData$query, "has", length(which(trafficBarsLive)), "live traffic bars")
+  }
+  verboseTraffic <- xml2::xml_attr(trafficBars[trafficBarsLive][[1]], "aria-label")
+
+
+  browser()
+  processedData <- list(
+    long = longLat[1],
+    lat  = longLat[2],
+    traffic = ""#xml2::read_xml()
+  )
+
 
 }
 
@@ -143,13 +236,15 @@ submitData <- function() {
 
 }
 
+#' @importFrom magrittr %>%
 generateData <- function() {
+  # old c(48.1356952, 16.9758324)
   # bratislava - center
-  pBaCenter <- c(48.1356952, 16.9758324) # bratislava
+  pBaCenter <- c(48.144851, 17.113107) # bratislava
   # bratislava upper left corner
-  pBaUpperLeft  <- c(48.2818733, 16.8558591)
+  pBaUpperLeft  <- pBaCenter + c(0.05,-0.05) # higher lower
   # bratislava lower right corner
-  pBaLowerRight <- c(48.0208401, 17.2861986)
+  pBaLowerRight <- pBaCenter + c(-0.05,0.05) # lower higher
 
   boundBoxBa <- abs(pBaUpperLeft - pBaLowerRight)
 
@@ -163,4 +258,10 @@ generateData <- function() {
     apply(MARGIN = 1, function(row) as.list(row)) %>%
     jsonlite::toJSON(auto_unbox = TRUE)
   return(data)
+}
+
+sendData <- function(generate = TRUE) {
+  body <- generateData()
+  url <- "od misa" # TODO:
+  httr::POST(url, body = body)
 }
