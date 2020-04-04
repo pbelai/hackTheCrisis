@@ -10,8 +10,9 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Imports: 
+  RSelenium,
   dplyr,
-  magrittr,
+  httr,
   jsonlite,
-  RSelenium
+  magrittr
 RoxygenNote: 7.1.0
