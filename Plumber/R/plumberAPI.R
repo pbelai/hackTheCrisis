@@ -27,6 +27,7 @@ function(lng, lat, radius){
 #' @post /people
 function(req){
   # this will be probably edite - depends on request body JSON characters escaping
-  body <- jsonlite::fromJSON(jsonlite::fromJSON(req$postBody))
+  body <- do.call("rbind", jsonlite::fromJSON(jsonlite::fromJSON(req$postBody))) %>% as.data.frame() %>%
+    apply(1,unlist) %>% do.call("rbind",.) %>% as.data.frame()
   plmbr:::addPeople(body)
 }
