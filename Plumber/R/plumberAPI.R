@@ -7,6 +7,8 @@
 #' @get /POIs
 function(lng, lat, radius){
   data <- plmbr:::getPOIsInRadius(lng, lat, radius)
+  data <- tail(data, 300)
+  data$numberOfPeople <- plmbr:::randomNumberInteger(1:200, nrow(data))
   data
 }
 

@@ -14,8 +14,9 @@ generateServer <- function() {
     values$location <- NULL
     values$currentLocation <- NULL
 
-    map <- .genBaseMap();
-    data <- getAreaData() %>% addColor()
+    map <- .genBaseMap()
+    data <- getAreaData()
+    #data <- getAreaDataFromAPI(48.1446364, 17.1103739, 300) %>% addColor()
     dataSubseted <- NULL
 
     observeEvent(input$tableOutput_rows_selected, {}) # for some reason I have to observe this event because the reactivity break down after location is allowed

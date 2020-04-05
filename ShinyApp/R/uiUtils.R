@@ -1,8 +1,8 @@
 addPolygons <- function(map, data) {
   map %>%
-    leaflet::addGeoJSON(createFeatureCollection(data$st_asgeojson[data$color == "green"]), fillColor = "green", color = "green") %>%
-    leaflet::addGeoJSON(createFeatureCollection(data$st_asgeojson[data$color == "yellow"]), fillColor = "yellow", color = "yellow") %>%
-    leaflet::addGeoJSON(createFeatureCollection(data$st_asgeojson[data$color == "red"]), fillColor = "red", color = "red")
+    leaflet::addGeoJSON(createFeatureCollection(data$geojson[data$color == "green"]), fillColor = "green", color = "green") %>%
+    leaflet::addGeoJSON(createFeatureCollection(data$geojson[data$color == "yellow"]), fillColor = "yellow", color = "yellow") %>%
+    leaflet::addGeoJSON(createFeatureCollection(data$geojson[data$color == "red"]), fillColor = "red", color = "red")
 }
 
 generatePoIDataTable <- function(data) {
