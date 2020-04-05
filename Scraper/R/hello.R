@@ -85,17 +85,21 @@ collectData <- function(query, remDr) {
     stop(paste0("the query '", query, "' resulted in ", length(searchResults), " search results"))
   }
   sleepTime <- 1 # sec
-
   cat("  extracting info\n")
   startTime <- Sys.time()
-  poiTitle <- remDr$getTitle() %>% unlist()
-  poiUrl   <- remDr$getCurrentUrl() %>% unlist()
-  while(grepl("@", poiUrl) == FALSE) {
-    cat("    poiUrl:", poiUrl, "\n")
+
+  poiUrl <- remDr$getCurrentUrl() %>% unlist()
+  longLatPattern <-
+    ".*![[:digit:]][[:alpha:]]([[:digit:]]+[.][[:digit:]]+![[:digit:]][[:alpha:]][[:digit:]]+[.][[:digit:]]+).*"
+  while(grepl(longLatPattern, poiUrl) == FALSE) {
+    cat("    sleeping with poiUrl:", poiUrl, "\n")
     # at this point i think this program is getting more sleep than me
-    Sys.sleep(10)
+    Sys.sleep(2)
     poiUrl <- remDr$getCurrentUrl() %>% unlist()
   }
+
+  poiTitle <- remDr$getTitle() %>% unlist()
+
   cat("    poiUrl:", poiUrl, "\n")
   popularTimes <- NULL
   while(is.null(popularTimes)) {
