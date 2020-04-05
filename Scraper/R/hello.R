@@ -29,7 +29,17 @@ runner <- function(fakeData = TRUE) {
         "Vojenský pamätník Slavin",
         "Železná studienka, Cesta mládeže, Nové Mesto",
         "Sad Janka Kráľa, Sad Janka Kráľa, Petržalka",
-        "Aupark, Einsteinova, Petržalka"
+        "Aupark, Einsteinova, Petržalka",
+        "Devín Castle, Muránská, Devín",
+        # "Relax Park, Starhradská, Petržalka", # drazdiak - Not enough data yet for (day of week)
+        "Oáza, Tematínska, Petržalka",  # drazdiak
+        # "The Spa - Luxury thai massage & Spa, Antolská, Petržalka", # drazdiak - Not enough data yet for (day of week)
+        "Pod Mostom, Viedenská cesta, Petržalka",  # nad sadom janka krala
+        # "boat Cafe, Tyršovo nábrežie, Petržalka" # nad sadom janka krala - Not enough data yet for (day of week)
+        "Au Cafe, Tyršovo nábrežie, Petržalka", # nad sadom janka krala
+        "Leberfinger, Bratislava-Petržalka-Petržalka", # nad sadom janka krala
+        "UFO Observation Deck, Most SNP, Petržalka", # in a galaxy far far away
+        "Aušpic Restaurant, Viedenská cesta, Petržalka" # sever petrzalka
       )
 
       remDr <- RSelenium::remoteDriver(
@@ -44,7 +54,7 @@ runner <- function(fakeData = TRUE) {
         rawFile <- file.path(realDataPath, "raw", paste0(query, ".json"))
         cat("query: ", query, "\n")
 
-        # change to TRUE if want to collectData always
+        # change to TRUE if want to collectData always # TRIGGER
         if (!file.exists(rawFile)) {
           rawData <- collectData(query, remDr)
           cat("  writing to file", rawFile, "\n")
@@ -146,7 +156,7 @@ collectData <- function(query, remDr) {
   return(jsonlite::toJSON(rawData))
 }
 
-processData <- function(rawData) {
+processData <- function(rawData) { # Not enough data yet
   # lat & long pattern in the url
   longLatPattern <-
     ".*![[:digit:]][[:alpha:]]([[:digit:]]+[.][[:digit:]]+![[:digit:]][[:alpha:]][[:digit:]]+[.][[:digit:]]+).*"
@@ -154,23 +164,31 @@ processData <- function(rawData) {
     strsplit("![[:digit:]][[:alpha:]]") %>%
     unlist()
   xml <- xml2::read_html(unlist(rawData$html))
+
+  # teraz mi chybaju data za niektore dni
+  #
+
+
   trafficBars <- xml2::xml_find_all(xml, "//div[contains(@class, 'section-popular-times-bar')]") # section-popular-times-value section-popular-times-live-value
+
   # check which is the live bar
   trafficBarsLive <- sapply(trafficBars, function(bar) {
     0 < length(xml2::xml_find_all(bar, ".//div[contains(@class, 'live-value')]"))
   })
-  if (length(which(trafficBarsLive)) != 0) {
-    trafficBar <- trafficBars[trafficBarsLive][[1]]
-  } else {
-    #section-popular-times-current-value
-    trafficBarsCurrentHour <- sapply(trafficBars, function(trafficBar) {
-      (1 == (length(xml2::xml_find_all(trafficBar, "./div[contains(@class, 'section-popular-times-current-value')]"))))
-    })
-    if (length(which(trafficBarsCurrentHour)) != 7) {
-      stop(" raw data for query", rawData$query, " contains traffic values for ", length(which(trafficBarsCurrentHour)), " days")
-    }
-    trafficBar <- trafficBars[trafficBarsCurrentHour][rawData$day]
+  # if (length(which(trafficBarsLive)) != 0) {
+  #   trafficBar <- trafficBars[trafficBarsLive][[1]]
+  # } else {
+
+  #section-popular-times-current-value
+  trafficBarsCurrentHour <- sapply(trafficBars, function(trafficBar) {
+    (1 == (length(xml2::xml_find_all(trafficBar, "./div[contains(@class, 'section-popular-times-current-value')]"))))
+  })
+  if (length(which(trafficBarsCurrentHour)) != 7) {
+    stop(" raw data for query", rawData$query, " contains traffic values for ", length(which(trafficBarsCurrentHour)), " days")
   }
+  trafficBar <- trafficBars[trafficBarsCurrentHour][rawData$day]
+
+  #}
   verboseTraffic <- xml2::xml_attr(trafficBar, "aria-label")
   # gsub("[^[:alnum:] ]", "", verboseTraffic) %>% strsplit(" ") %>% .[[1]] %>%  as.numeric()
   x <- gsub("[^[:alnum:] ]", "", verboseTraffic) %>%
