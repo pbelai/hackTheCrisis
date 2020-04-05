@@ -26,7 +26,10 @@ generateUI <- function() {
                              shiny::tags$style(shiny::HTML(getDTStyles()))),
 
 
-            fluidRow(getInformationBoxes()),
+            fluidRow(shinydashboard::valueBoxOutput("place"),
+                     shinydashboard::valueBoxOutput("numberOfPeople"),
+                     shinydashboard::valueBoxOutput("area")
+                    ),
             fluidRow(leaflet::leafletOutput("map")),
             fluidRow(DT::dataTableOutput("tableOutput"))
         )

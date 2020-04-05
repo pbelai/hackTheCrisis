@@ -1,31 +1,3 @@
-getInformationBoxes <- function() {
-  area <- getArea()
-  numberOfPeople <- getNumberOfPeopleInArea()
-  color <- getColor(numberOfPeople, area)
-
-
-  list(
-    shinydashboard::valueBox(
-      "Miesto",
-      "Miesto",
-      color = color,
-      icon = shiny::icon("map-marker-alt")
-    ),
-    shinydashboard::valueBox(
-      numberOfPeople,
-      "Počet ľudí",
-      color = color,
-      icon = shiny::icon(getPeopleIcon(numberOfPeople, area))
-    ),
-    shinydashboard::valueBox(
-      area,
-      "Plocha (m²)",
-      color = color,
-      icon = shiny::icon("map")
-    )
-  )
-}
-
 addPolygons <- function(map, data) {
   map %>%
     leaflet::addGeoJSON(createFeatureCollection(data$st_asgeojson[data$color == "green"]), fillColor = "green", color = "green") %>%
